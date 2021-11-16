@@ -12,6 +12,7 @@ import copy
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib import cm
+import warnings
 import os
 import numpy as np
 import vtk
@@ -257,10 +258,10 @@ df['pol_mean'] = None
 df['pol_var'] = None
 
 # angular bin widths
-r_edges = np.linspace(0, 7.4*np.pi/180, num=6)
-t_edges = np.linspace(-np.pi, np.pi, num=13)
+r_edges = np.linspace(0, 8*np.pi/180, num=9)
+t_edges = np.linspace(-np.pi, np.pi, num=19)
 
-i = 13
+#i = 13
 
 for i in np.arange(df.shape[0]):
     elevFilter = vtk.vtkSimpleElevationFilter()
@@ -310,16 +311,52 @@ cmap_div.set_bad(color='black')
 cmap_seq = copy.copy(cm.get_cmap('rainbow'))
 cmap_seq.set_bad(color='black')
 
+warnings.warn('Hackish way to cycle through dataframe, check if modifying')
+for i in np.arange(8)*2:
+    f, axs = plt.subplots(1, 3, figsize=(15,5), 
+                          subplot_kw=dict(projection='polar'))
+    
+    apr17 = df.at[i,'pol_mean']
+    apr22 = df.at[i+1, 'pol_mean']
+    hmin = min(np.nanmin(apr17), np.nanmin(apr22))
+    hmax = max(np.nanmax(apr17), np.nanmax(apr22))
+    
+    h = axs[0].pcolormesh(t_edges, r_edges*180/np.pi, 
+              apr17,
+              cmap=cmap_seq, vmin=hmin, vmax=hmax)
 
+    axs[0].set_ylim([0, df.at[i, 'beam_width']/2])
+    axs[0].set_title(pydar.mosaic_date_parser(df.at[i,'project_name']))
+    f.colorbar(h, ax=axs[0], shrink=0.8, label='Height (m)',
+               format='%.3f')
+    axs[0].yaxis.set_ticks(r_edges[r_edges<=df.at[i, 'beam_width']*np.pi/180/2]*180/np.pi)
+    axs[0].tick_params(axis='y', colors='lime')
+    
+    
+    h = axs[1].pcolormesh(t_edges, r_edges*180/np.pi, 
+              apr22,
+              cmap=cmap_seq, vmin=hmin, vmax=hmax)
 
+    axs[1].set_ylim([0, df.at[i+1, 'beam_width']/2])
+    axs[1].set_title(pydar.mosaic_date_parser(df.at[i+1,'project_name']))
+    f.colorbar(h, ax=axs[1], shrink=0.8, label='Height (m)',
+               format='%.3f')
+    axs[1].yaxis.set_ticks(r_edges[r_edges<=df.at[i, 'beam_width']*np.pi/180/2]*180/np.pi)
+    axs[1].tick_params(axis='y', colors='lime')
+    
+    h = axs[2].pcolormesh(t_edges, r_edges*180/np.pi, 
+              apr22-apr17,
+              cmap=cmap_div, vmin=-.3, vmax=.3)
 
-
-
-f, axs = plt.subplots(1, 1, figsize=(5,5),
-                      subplot_kw=dict(projection='polar'))
-h = axs.pcolormesh(t_edges, r_edges*180/np.pi, 
-              pol_mean,
-              cmap=cmap_seq)
-
-axs.set_ylim([0, df.at[i, 'beam_width']/2])
-f.colorbar(h, ax=axs, shrink=0.8, label='Height (m)')
+    axs[2].set_ylim([0, df.at[i+1, 'beam_width']/2])
+    axs[2].set_title('Difference')
+    f.colorbar(h, ax=axs[2], shrink=0.8, label='Accumulation (m)',
+               format='%.3f')
+    axs[2].yaxis.set_ticks(r_edges[r_edges<=df.at[i, 'beam_width']*np.pi/180/2]*180/np.pi)
+    axs[2].tick_params(axis='y', colors='lime')
+    
+    f.suptitle(df.at[i, 'frequency'] + ' pol: ' + df.at[i, 'polarization'])
+    
+    f.savefig(os.path.join('..', 'figures', 'polar_map_' 
+                           + df.at[i, 'frequency'].split(' ')[0] + '_pol_' +
+                           df.at[i,'polarization'] + '.png'))
