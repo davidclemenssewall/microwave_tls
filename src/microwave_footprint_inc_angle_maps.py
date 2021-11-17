@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-microwave_footprint_maps.py
+microwave_footprint_inc_angle_maps
 
-Created on Tue Oct 26 16:11:23 2021
+Created on Wed Nov 17 12:21:14 2021
 
 @author: thayer
 """
@@ -39,6 +39,14 @@ for project_name in project_names:
     scan_area.project_dict[project_name].read_transforms()
     scan_area.project_dict[project_name].apply_transforms([
         'current_transform'])
+
+# Create normals for looking and incident angles
+radius = 0.1
+max_nn = 10
+
+for project_name in project_names:
+    scan_area.project_dict[project_name].create_normals(radius=radius,
+                                                        max_nn=max_nn)
 
 # Get the labels
 ss = scan_area.project_dict["mosaic_rs_170420.RiSCAN"].scan_dict[
@@ -151,6 +159,21 @@ for i in np.arange(df.shape[0]):
     extractPoints.Update()
     
     df.at[i, 'points'] = extractPoints.GetOutput()
+
+# %% Now compute the incidence angle for each point/beam
+
+df['incidence angle'] = None
+
+for i in np.arange(df.shape[0]):
+    ctr = np.array(df.at[i, 'ctr'])
+    
+    pts = vtk_to_numpy(df.at[i, 'points'].GetPoints().GetData())
+    vec = pts - ctr
+    vec = vec/np.sqrt((vec**2).sum(axis=1))[:, np.newaxis]
+    nrm = vtk_to_numpy(df.at[i, 'points'].GetPointData().GetNormals())
+    
+    df.at[i, 'incidence angle'] = (np.arccos((vec*nrm).sum(axis=1))*180
+                                     /np.pi) - 90
 
 # %% Useful functions for binning and plotting
 
@@ -287,7 +310,7 @@ for i in np.arange(df.shape[0]):
     tf2.Update()
     
     pts = vtk_to_numpy(tf2.GetOutput().GetPoints().GetData())
-    elev = vtk_to_numpy(tf2.GetOutput().GetPointData().GetArray('Elevation'))
+    inc_angles = df.at[i, 'incidence angle']
     
     pts[:,1] -= np.pi/2
     pts[:,2] -= np.pi
@@ -299,7 +322,7 @@ for i in np.arange(df.shape[0]):
     
     pol_pts = np.vstack((np.sqrt(np.square(pts[:,1:]).sum(axis=1)),
                              np.arctan2(pts[:,2], pts[:,1]),
-                             elev)).T
+                             inc_angles)).T
     
     df.at[i,'pol_cts'], df.at[i,'pol_mean'], df.at[i,'pol_var'] = (
         gridded_counts_means_vars(pol_pts, (r_edges, t_edges)))
@@ -328,7 +351,7 @@ for i in np.arange(8)*2:
 
     axs[0].set_ylim([0, df.at[i, 'beam_width']/2])
     axs[0].set_title(pydar.mosaic_date_parser(df.at[i,'project_name']))
-    f.colorbar(h, ax=axs[0], shrink=0.8, label='Height (m)',
+    f.colorbar(h, ax=axs[0], shrink=0.8, label='Inc. Angle ($^o$)',
                format='%.3f')
     axs[0].yaxis.set_ticks(r_edges[r_edges<=df.at[i, 'beam_width']*np.pi/180/2]*180/np.pi)
     axs[0].tick_params(axis='y', colors='lime')
@@ -340,7 +363,7 @@ for i in np.arange(8)*2:
 
     axs[1].set_ylim([0, df.at[i+1, 'beam_width']/2])
     axs[1].set_title(pydar.mosaic_date_parser(df.at[i+1,'project_name']))
-    f.colorbar(h, ax=axs[1], shrink=0.8, label='Height (m)',
+    f.colorbar(h, ax=axs[1], shrink=0.8, label='Inc. Angle ($^o$)',
                format='%.3f')
     axs[1].yaxis.set_ticks(r_edges[r_edges<=df.at[i, 'beam_width']*np.pi/180/2]*180/np.pi)
     axs[1].tick_params(axis='y', colors='lime')
@@ -352,14 +375,14 @@ for i in np.arange(8)*2:
 
     axs[2].set_ylim([0, df.at[i+1, 'beam_width']/2])
     axs[2].set_title('Difference')
-    f.colorbar(h, ax=axs[2], shrink=0.8, label='Accumulation (m)',
+    f.colorbar(h, ax=axs[2], shrink=0.8, label='$\Delta$ Inc. Angle ($^o$)',
                format='%.3f')
     axs[2].yaxis.set_ticks(r_edges[r_edges<=df.at[i, 'beam_width']*np.pi/180/2]*180/np.pi)
     axs[2].tick_params(axis='y', colors='lime')
     
     f.suptitle(df.at[i, 'frequency'] + ' pol: ' + df.at[i, 'polarization'])
     
-    f.savefig(os.path.join('..', 'figures', 'polar_map_' 
+    f.savefig(os.path.join('..', 'figures', 'polar_map_inc_angle_' 
                            + df.at[i, 'frequency'].split(' ')[0] + '_pol_' +
                            df.at[i,'polarization'] + '.png'))
 
@@ -373,4 +396,4 @@ np.save(os.path.join('..', 'data', 'polar_gridded_data','t_edges.npy'),
 df[['subcategory', 'location', 'frequency', 'polarization', 'beam_width',
     'project_name', 'ctr', 'ori', 'pol_cts', 'pol_mean', 'pol_var']
    ].to_pickle(os.path.join('..', 'data', 'polar_gridded_data',
-                                       'polar_height_maps.pkl'))
+                                       'polar_inc_angle_maps.pkl'))

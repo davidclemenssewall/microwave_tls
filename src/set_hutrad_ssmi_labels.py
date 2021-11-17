@@ -453,55 +453,47 @@ ssmi_19 = {
     "mosaic_rs_170420.RiSCAN": [
         [
             "ScanPos008",
-            10644958
+            10642685
         ],
         [
             "ScanPos008",
-            10642772
+            10642818
         ],
         [
             "ScanPos008",
-            10642589
+            10642796
         ],
         [
             "ScanPos008",
-            10642293
+            10642711
         ],
         [
             "ScanPos008",
-            10642322
+            10642469
         ],
         [
             "ScanPos008",
-            10643876
+            10642541
         ],
         [
             "ScanPos008",
-            10644150
+            10642532
         ],
         [
             "ScanPos008",
-            10644416
+            10644675
         ],
         [
             "ScanPos008",
-            10645126
+            10644735
         ],
         [
             "ScanPos008",
-            10645223
+            10644770
         ],
         [
             "ScanPos008",
-            10645393
-        ],
-        [
-            "ScanPos008",
-            10645621
-        ],
-        [
-            "ScanPos008",
-            10645035
+            10644797
         ]
     ]
 }
@@ -758,14 +750,16 @@ R_y = np.array([[np.cos(beta), 0, np.sin(beta)],
 ssmi_19_r = (R_y @ R_z @ cc_ssmi_19.T).T
 
 
-# %% Now compute center estimate for the rectangle
+# %% Now compute center estimate for the rectangle CHANGED TO CIRCLE FOR ANT
 
-x = ssmi_19_r[:,0]
-y = ssmi_19_r[:,1]
+#x = ssmi_19_r[:,0]
+#y = ssmi_19_r[:,1]
 
-r_param0 = (x.mean(), y.mean(), 0.4, 0.4, 0)
+#r_param0 = (x.mean(), y.mean(), 0.4, 0.4, 0)
 
-r_param_opt, ier = optimize.leastsq(rect_fun, r_param0)
+#r_param_opt, ier = optimize.leastsq(rect_fun, r_param0)
+r_param_opt = estimate_center(ssmi_19_r)
+
 
 # %% Plot just to check that we've done this correctly
 f, ax = plt.subplots(1, 1, figsize=(8, 8))
