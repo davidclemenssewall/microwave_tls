@@ -44,19 +44,19 @@ scan_area.project_dict[project_names[1]].display_project(vmin, vmax,
 
 # %% Save images
 
-camera_pos = (12.364437074380438, 4.520507966818727, 500.0)
-foc_point = (12.364437074380438, 4.520507966818727, -5.0)
+camera_pos = (15, 4.520507966818727, 500.0)
+foc_point = (15, 4.520507966818727, -5.0)
 roll = 22.974745361393772
 
 image_scale = 10
-window_size = (500, 700)
+window_size = (700, 700)
 
 scan_area.project_dict[project_names[0]].project_to_image(vmin, vmax, 
     foc_point, camera_pos, roll=roll, image_scale=image_scale, mode='map',
-    colorbar=False, field='Reflectance', window_size=window_size,
+    colorbar=True, field='Reflectance', window_size=window_size,
     path=os.path.join('..', 'figures', 'apr17_reflectance.png'))
 
 scan_area.project_dict[project_names[1]].project_to_image(vmin, vmax, 
     foc_point, camera_pos, roll=roll, image_scale=image_scale, mode='map',
-    colorbar=False, field='Reflectance', window_size=window_size,
+    colorbar=True, field='Reflectance', window_size=window_size,
     path=os.path.join('..', 'figures', 'apr22_reflectance.png'))
